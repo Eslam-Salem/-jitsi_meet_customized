@@ -2,6 +2,8 @@ import Flutter
 import UIKit
 import JitsiMeetSDK
 
+var batteryChannel = FlutterMethodChannel()
+
 public class SwiftJitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     var window: UIWindow?
 
@@ -25,12 +27,32 @@ public class SwiftJitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler
 
         registrar.addMethodCallDelegate(instance, channel: channel)
 
+
         // Set up event channel for conference events
         let eventChannelName = "jitsi_meet_events"
 
         let eventChannel = FlutterEventChannel(name: eventChannelName, binaryMessenger: registrar.messenger())
         eventChannel.setStreamHandler(instance)
+
+      batteryChannel = FlutterMethodChannel(name: "samples.flutter.dev/pointer",
+                                                binaryMessenger: registrar.messenger())
+
+      batteryChannel.setMethodCallHandler({
+         (call: FlutterMethodCall, result: FlutterResult) -> Void in
+        // This method is invoked on the UI thread.
+        if call.method == "sendUserPointer"  {
+          if let arguments = call.arguments as? [String : Any] {
+            let point = SelectedPoint(
+              id: arguments["id"] as? Int ?? 0,
+              name: arguments["name"] as? String ?? "",
+              cgPoint: CGPoint(x: arguments["x"] as? Double ?? 0.0, y: arguments["y"] as? Double ?? 0.0)
+            )
+            JitsiViewController.selectedData.append(point)
+          }
+        }
+      })
     }
+
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
 
